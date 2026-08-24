@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Entreno" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>Entrenador Personal</title>
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#ffffff; --text:#111827; --muted:#6b7280;
+      --border:#e5e7eb; --dark:#111827; --soft:#eef2f7;
+      --green:#22c55e; --yellow:#eab308; --red:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);padding-bottom:92px}
+    header{padding:calc(18px + env(safe-area-inset-top)) 18px 14px;background:linear-gradient(180deg,#111827,#1f2937);color:#fff}
+    .topline{display:flex;justify-content:space-between;align-items:center}
+    h1{font-size:24px;margin:0}
+    .date{font-size:13px;opacity:.75;margin-top:4px}
+    main{max-width:720px;margin:0 auto;padding:14px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:15px;box-shadow:0 3px 14px rgba(17,24,39,.04);margin-bottom:12px}
+    .card h2{font-size:15px;margin:0 0 12px}
+    .metric{font-size:28px;font-weight:700}
+    .sub{font-size:12px;color:var(--muted);margin-top:4px}
+    .status{display:flex;gap:8px}
+    .pill{border:1px solid var(--border);background:#fff;border-radius:999px;padding:9px 12px;font-size:13px;cursor:pointer}
+    .pill.active{background:var(--dark);color:#fff;border-color:var(--dark)}
+    .pill.green.active{background:#166534;border-color:#166534}
+    .pill.yellow.active{background:#854d0e;border-color:#854d0e}
+    .pill.red.active{background:#991b1b;border-color:#991b1b}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+    .row:last-child{border-bottom:0}
+    label{font-size:14px}
+    select,input,textarea{font:inherit;border:1px solid var(--border);border-radius:12px;padding:10px;background:#fff;max-width:55%}
+    input[type=number]{width:95px}
+    textarea{max-width:100%;width:100%;min-height:75px}
+    button.primary{width:100%;background:var(--dark);color:#fff;border:0;border-radius:15px;padding:14px;font-weight:700;font-size:15px}
+    button.secondary{background:var(--soft);color:var(--text);border:0;border-radius:12px;padding:10px 12px;font-weight:600}
+    .quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .quick button{padding:12px 8px}
+    .exercise{border:1px solid var(--border);border-radius:15px;padding:12px;margin:10px 0}
+    .exercise strong{display:block;margin-bottom:7px}
+    .exercise .meta{font-size:12px;color:var(--muted)}
+    .exinputs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+    .exinputs input{max-width:none;width:100%}
+    .tabs{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.96);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);padding:8px 5px calc(8px + env(safe-area-inset-bottom));backdrop-filter:blur(14px)}
+    .tab{border:0;background:transparent;font-size:11px;color:var(--muted);padding:6px 2px}
+    .tab span{display:block;font-size:20px;margin-bottom:2px}
+    .tab.active{color:var(--text);font-weight:700}
+    section.view{display:none}.view.active{display:block}
+    .banner{padding:11px 13px;border-radius:13px;background:#ecfdf5;border:1px solid #bbf7d0;font-size:13px;margin-bottom:12px}
+    .warning{background:#fffbeb;border-color:#fde68a}
+    .danger{background:#fef2f2;border-color:#fecaca}
+    .tiny{font-size:11px;color:var(--muted)}
+    .calendar-item{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+    .dot{width:10px;height:10px;border-radius:50%;background:#9ca3af;flex:0 0 auto}
+    @media (max-width:410px){.grid{grid-template-columns:1fr 1fr}.quick{grid-template-columns:1fr 1fr 1fr} h1{font-size:22px}}
+  </style>
+</head>
+<body>
+<header>
+  <div class="topline"><div><h1>Entrenador Personal</h1><div class="date" id="todayDate"></div></div><div style="font-size:26px">🏋️</div></div>
+</header>
+
+<main>
+<section id="hoy" class="view active">
+  <div id="achillesBanner" class="banner">🟢 Aquiles: evolución estable</div>
+  <div class="grid">
+    <div class="card"><div class="sub">Entrenamiento</div><div class="metric" id="todayWorkout">—</div><div class="sub" id="todayDuration">Sin plan todavía</div></div>
+    <div class="card"><div class="sub">Energía</div><div class="metric"><span id="energyMetric">—</span><span style="font-size:15px">/5</span></div><div class="sub">Check-in de hoy</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Check-in rápido</h2>
+    <div class="row"><label>¿Entrenas hoy?</label><select id="trainToday"><option>Sí</option><option>No</option><option>No sé</option></select></div>
+    <div class="row"><label>Hora</label><input id="time" type="time" value="18:30"></div>
+    <div class="row"><label>Duración</label><select id="duration"><option>30</option><option>45</option><option selected>60</option><option>75</option><option>90</option></select></div>
+    <div class="row"><label>Lugar</label><select id="place"><option>Gym</option><option>Casa</option><option>Exterior</option><option>Bici</option></select></div>
+    <div class="row"><label>Energía</label><select id="energy"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div>
+    <div class="row"><label>Sueño</label><select id="sleep"><option>Bien</option><option selected>Regular</option><option>Mal</option></select></div>
+    <div class="row"><label>Fatiga</label><select id="fatigue"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select></div>
+    <div class="row"><label>Peso opcional</label><input id="weight" type="number" step="0.1" placeholder="kg"></div>
+    <button class="primary" onclick="saveCheckin()">Guardar check-in</button>
+  </div>
+
+  <div class="card">
+    <h2>Acciones rápidas</h2>
+    <div class="quick">
+      <button class="secondary" onclick="go('entreno')">🏋️ Entreno</button>
+      <button class="secondary" onclick="go('aquiles')">🦶 Aquiles</button>
+      <button class="secondary" onclick="markRest()">😴 Descanso</button>
+    </div>
+  </div>
+</section>
+
+<section id="entreno" class="view">
+  <div class="card">
+    <h2>Sesión de hoy</h2>
+    <div class="row"><label>Objetivo</label><select id="workoutGoal"><option>Torso</option><option>Pierna segura</option><option>Full body</option><option>Core</option><option>Bici estática</option><option>Recuperación</option></select></div>
+    <div class="row"><label>Carga</label><select id="load"><option>Baja</option><option selected>Media</option><option>Alta</option></select></div>
+    <button class="primary" onclick="createWorkout()">Crear sesión base</button>
+    <div class="tiny" style="margin-top:8px">Esta v0.1 crea una sesión editable. La lógica inteligente se irá sustituyendo por tu historial real conforme la pulamos.</div>
+  </div>
+  <div id="exerciseList"></div>
+  <button class="primary" onclick="finishWorkout()">✅ ENTRENAMIENTO COMPLETO</button>
+</section>
+
+<section id="progreso" class="view">
+  <div class="grid">
+    <div class="card"><div class="sub">Último peso</div><div class="metric" id="lastWeight">—</div><div class="sub">kg</div></div>
+    <div class="card"><div class="sub">Entrenos</div><div class="metric" id="workoutCount">0</div><div class="sub">registrados</div></div>
+  </div>
+  <div class="card">
+    <h2>Historial reciente</h2>
+    <div id="history"></div>
+  </div>
+</section>
+
+<section id="aquiles" class="view">
+  <div class="card">
+    <h2>Estado del Aquiles izquierdo</h2>
+    <div class="status" style="margin-bottom:12px">
+      <button class="pill green" data-status="green" onclick="setStatus('green')">🟢 Verde</button>
+      <button class="pill yellow" data-status="yellow" onclick="setStatus('yellow')">🟡 Amarillo</button>
+      <button class="pill red" data-status="red" onclick="setStatus('red')">🔴 Rojo</button>
+    </div>
+    <div class="row"><label>Dolor (0–10)</label><input id="pain" type="number" min="0" max="10" value="0"></div>
+    <div class="row"><label>Tirantez (0–5)</label><input id="tightness" type="number" min="0" max="5" value="1"></div>
+    <div class="row"><label>Rigidez (0–5)</label><input id="stiffness" type="number" min="0" max="5" value="1"></div>
+    <div class="row"><label>Hinchazón</label><select id="swelling"><option>Menos</option><option selected>Igual</option><option>Más</option></select></div>
+    <div class="row"><label>Respuesta 24 h</label><select id="response24"><option>Mejor</option><option selected>Igual</option><option>Peor</option><option>Sin dato</option></select></div>
+    <button class="primary" onclick="saveAchilles()">Guardar Aquiles</button>
+  </div>
+
+  <div class="card">
+    <h2>Fisioterapia</h2>
+    <div class="row"><label>¿Fisio hoy?</label><select id="physio"><option>No</option><option>Sí</option></select></div>
+    <textarea id="physioNotes" placeholder="Ej.: descarga sóleo, movilidad, tratamiento del tendón..."></textarea>
+    <button class="primary" onclick="savePhysio()">Guardar fisio</button>
+  </div>
+</section>
+
+<section id="calendario" class="view">
+  <div class="card">
+    <h2>Añadir evento</h2>
+    <div class="row"><label>Fecha</label><input id="eventDate" type="date"></div>
+    <div class="row"><label>Tipo</label><select id="eventType"><option>Entrenamiento</option><option>Fisio</option><option>Descanso</option><option>Viaje</option><option>Imprevisto</option><option>Objetivo</option></select></div>
+    <textarea id="eventNotes" placeholder="Ej.: viaje a Bruselas, no puedo entrenar, caminata alta..."></textarea>
+    <button class="primary" onclick="addEvent()">Añadir</button>
+  </div>
+  <div class="card"><h2>Próximos eventos</h2><div id="events"></div></div>
+</section>
+</main>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="hoy" onclick="go('hoy')"><span>🏠</span>Hoy</button>
+  <button class="tab" data-tab="entreno" onclick="go('entreno')"><span>🏋️</span>Entreno</button>
+  <button class="tab" data-tab="progreso" onclick="go('progreso')"><span>📈</span>Progreso</button>
+  <button class="tab" data-tab="aquiles" onclick="go('aquiles')"><span>🦶</span>Aquiles</button>
+  <button class="tab" data-tab="calendario" onclick="go('calendario')"><span>📅</span>Calendario</button>
+</nav>
+
+<script>
+const KEY='pabloTrainingAppV01';
+const defaults={checkins:[],achilles:[],physio:[],workouts:[],events:[],currentStatus:'green',currentWorkout:[]};
+let db=JSON.parse(localStorage.getItem(KEY)||'null')||defaults;
+Object.keys(defaults).forEach(k=>{if(db[k]===undefined)db[k]=defaults[k]});
+
+const iso=()=>new Date().toISOString().slice(0,10);
+const fmtDate=(d)=>new Date(d+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'});
+document.getElementById('todayDate').textContent=new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+document.getElementById('eventDate').value=iso();
+
+function save(){localStorage.setItem(KEY,JSON.stringify(db));render();}
+function go(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===id));
+  if(id==='progreso'||id==='calendario') render();
+}
+function saveCheckin(){
+  const rec={date:iso(),train:trainToday.value,time:time.value,duration:+duration.value,place:place.value,energy:+energy.value,sleep:sleep.value,fatigue:+fatigue.value,weight:weight.value?+weight.value:null};
+  db.checkins=db.checkins.filter(x=>x.date!==rec.date);db.checkins.push(rec);save();
+}
+function markRest(){
+  trainToday.value='No'; saveCheckin();
+  db.events.push({date:iso(),type:'Descanso',notes:'Descanso registrado desde Hoy'}); save();
+}
+function setStatus(s){db.currentStatus=s;save();}
+function saveAchilles(){
+  const rec={date:iso(),status:db.currentStatus,pain:+pain.value,tightness:+tightness.value,stiffness:+stiffness.value,swelling:swelling.value,response24:response24.value};
+  db.achilles=db.achilles.filter(x=>x.date!==rec.date);db.achilles.push(rec);save();
+}
+function savePhysio(){
+  const rec={date:iso(),has:physio.value==='Sí',notes:physioNotes.value.trim()};
+  db.physio=db.physio.filter(x=>x.date!==rec.date);db.physio.push(rec);save();
+}
+const plans={
+  'Torso':[['Press pecho máquina','3 × 10–12','RIR 2','90 s'],['Remo sentado','3 × 10–12','RIR 2','90 s'],['Jalón al pecho','3 × 10–12','RIR 2','90 s'],['Press hombro máquina','2 × 10–12','RIR 2–3','75 s'],['Curl bíceps polea','2 × 12–15','RIR 2','60 s'],['Tríceps polea','2 × 12–15','RIR 2','60 s']],
+  'Pierna segura':[['Extensión de cuádriceps','3 × 12','RIR 3','75 s'],['Curl femoral sentado','3 × 12','RIR 3','75 s'],['Abductor máquina','3 × 15','RIR 2–3','60 s'],['Core antirotación','3 × 10/lado','Controlado','45 s']],
+  'Full body':[['Press pecho máquina','3 × 10–12','RIR 2','90 s'],['Remo sentado','3 × 10–12','RIR 2','90 s'],['Extensión de cuádriceps','2 × 12','RIR 3','75 s'],['Curl femoral sentado','2 × 12','RIR 3','75 s'],['Core','3 × 30–40 s','Controlado','45 s']],
+  'Core':[['Pallof press','3 × 10/lado','Controlado','45 s'],['Dead bug','3 × 8/lado','Controlado','45 s'],['Plancha modificada','3 × 25–40 s','RIR técnico 2','60 s']],
+  'Bici estática':[['Bicicleta estática','1 × 20–40 min','RPE 3–5','—']],
+  'Recuperación':[['Movilidad autorizada','1 × 10 min','Suave','—'],['Bicicleta muy suave','1 × 10–20 min','RPE 2–3','—']]
+};
+function createWorkout(){
+  const goal=workoutGoal.value;
+  db.currentWorkout=(plans[goal]||[]).map((x,i)=>({name:x[0],target:x[1],effort:x[2],rest:x[3],weight:'',done:false}));
+  save(); renderExercises();
+}
+function renderExercises(){
+  const box=document.getElementById('exerciseList'); box.innerHTML='';
+  db.currentWorkout.forEach((e,i)=>{
+    box.innerHTML+=`<div class="exercise"><strong>${e.name}</strong><div class="meta">${e.target} · ${e.effort} · descanso ${e.rest}</div><div class="exinputs"><input inputmode="decimal" placeholder="Peso kg" value="${e.weight||''}" onchange="updEx(${i},'weight',this.value)"><button class="secondary" onclick="toggleEx(${i})">${e.done?'✅ Hecho':'Marcar hecho'}</button></div></div>`;
+  });
+}
+function updEx(i,k,v){db.currentWorkout[i][k]=v;save();}
+function toggleEx(i){db.currentWorkout[i].done=!db.currentWorkout[i].done;save();renderExercises();}
+function finishWorkout(){
+  if(!db.currentWorkout.length){alert('Primero crea o registra una sesión.');return}
+  db.currentWorkout.forEach(e=>e.done=true);
+  db.workouts.push({date:iso(),goal:workoutGoal.value,load:load.value,exercises:JSON.parse(JSON.stringify(db.currentWorkout))});
+  db.currentWorkout=[];save();go('progreso');
+}
+function addEvent(){
+  if(!eventDate.value)return;
+  db.events.push({date:eventDate.value,type:eventType.value,notes:eventNotes.value.trim()});eventNotes.value='';save();
+}
+function render(){
+  const ci=[...db.checkins].reverse().find(x=>x.date===iso())||[...db.checkins].reverse()[0];
+  if(ci){energyMetric.textContent=ci.energy;todayWorkout.textContent=ci.train==='No'?'Descanso':ci.place;todayDuration.textContent=ci.train==='No'?'Sin entrenamiento':`${ci.duration} min · ${ci.time}`;}
+  const colors={green:['🟢','evolución estable','banner'],yellow:['🟡','vigilar carga','banner warning'],red:['🔴','reducir y revisar','banner danger']};
+  const st=colors[db.currentStatus]||colors.green;achillesBanner.className=st[2];achillesBanner.textContent=`${st[0]} Aquiles: ${st[1]}`;
+  document.querySelectorAll('[data-status]').forEach(b=>b.classList.toggle('active',b.dataset.status===db.currentStatus));
+  const weights=db.checkins.filter(x=>x.weight!=null);lastWeight.textContent=weights.length?weights[weights.length-1].weight.toFixed(1):'—';
+  workoutCount.textContent=db.workouts.length;
+  history.innerHTML=db.workouts.slice(-8).reverse().map(w=>`<div class="calendar-item"><div class="dot"></div><div><strong>${fmtDate(w.date)} · ${w.goal}</strong><div class="tiny">${w.load} · ${w.exercises.length} ejercicios</div></div></div>`).join('')||'<div class="tiny">Aún no hay entrenamientos registrados.</div>';
+  events.innerHTML=db.events.slice().sort((a,b)=>a.date.localeCompare(b.date)).filter(e=>e.date>=iso()).slice(0,12).map(e=>`<div class="calendar-item"><div class="dot"></div><div><strong>${fmtDate(e.date)} · ${e.type}</strong><div class="tiny">${e.notes||'Sin notas'}</div></div></div>`).join('')||'<div class="tiny">Sin eventos próximos.</div>';
+  renderExercises();
+}
+render();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{})}
+</script>
+</body>
+</html>
