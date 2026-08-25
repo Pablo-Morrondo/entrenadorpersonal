@@ -1,0 +1,56 @@
+(() => {
+  'use strict';
+  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+  const PROFILE='entrenador-v032-profile', DAILY='entrenador-v032-daily', CORE='entrenador-v03';
+  const iso=()=>{const d=new Date(Date.now()-new Date().getTimezoneOffset()*60000);return d.toISOString().slice(0,10)};
+  const read=(k,fallback)=>{try{return {...fallback,...JSON.parse(localStorage.getItem(k)||'{}')}}catch{return fallback}};
+  const notify=msg=>{const t=$('#toast');t.textContent=msg;t.classList.remove('hide');setTimeout(()=>t.classList.add('hide'),1900)};
+  let profile=read(PROFILE,{age:54,height:1.78,weight:'70–73',days:5,minTime:40,maxTime:90,waterGoal:2,quitDate:'2026-09-08',resources:['Gimnasio','Bici carretera','Piscina','Spa','Mancuernas','Gomas','Running','Trail running'],goals:{body:'Mejorar físico y fuerza',bodyDate:'2026-12-31',achilles:'Recuperar Aquiles sin recaídas',race:'San Silvestre 2027',raceDate:'2027-12-31'},supplements:[]});
+  let daily=read(DAILY,{}), sleepImage='';
+
+  const style=document.createElement('style');
+  style.textContent='.v32note{font-size:12px;color:var(--m);margin:7px 0}.resource-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.resource-grid .chip{width:100%}.goalbox{background:#081813;border:1px solid var(--l);border-radius:14px;padding:12px;margin:8px 0}.goalbox strong{display:block;margin-bottom:4px}.badge{display:inline-block;font-size:10px;padding:4px 7px;border-radius:20px;background:#3c3020;color:#ffd66e;margin-top:5px}.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.sleep-preview{width:100%;max-height:180px;object-fit:contain;border-radius:12px;margin-top:8px}@media(max-width:370px){.resource-grid,.profile-grid{grid-template-columns:1fr}}';
+  document.head.appendChild(style);
+
+  function optionButtons(field,items){return `<div class="opts v32opts" data-v32="${field}">${items.map(([v,label])=>`<button type="button" class="chip" data-v="${v}">${label}</button>`).join('')}</div>`}
+  function bindSingle(root=document){root.querySelectorAll('.v32opts').forEach(g=>g.addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;g.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));b.classList.add('on')}))}
+  function chosen(field){const b=document.querySelector(`[data-v32="${field}"] .on`);return b?.dataset.v||''}
+  function choose(field,v){document.querySelectorAll(`[data-v32="${field}"] .chip`).forEach(b=>b.classList.toggle('on',b.dataset.v===v))}
+
+  const placeRow=$('[data-f="place"]').closest('.row');
+  const typeRow=document.createElement('div');typeRow.className='row v32-training';typeRow.innerHTML='<span class="label">¿Qué entrenamiento harás?</span>'+optionButtons('trainingType',[
+    ['Fuerza','🏋️ Fuerza'],['Bicicleta','🚴 Bicicleta'],['Running','🏃 Running'],['Natación','🏊 Natación'],['Caminar','🚶 Caminar'],['Movilidad','🧘 Movilidad'],['Trail running','⛰️ Trail'],['Otro','➕ Otro']
+  ])+'<p class="v32note">Running, trail y bici de carretera quedan condicionados al alta del fisio.</p>';
+  placeRow.before(typeRow);
+  const energyRow=$('[data-f="energy"]').closest('.row');
+  const timeRow=document.createElement('div');timeRow.className='row v32-training';timeRow.innerHTML='<span class="label">Tiempo disponible</span>'+optionButtons('availableTime',[['20','20 min'],['40','40 min'],['60','60 min'],['75','75 min'],['90','90 min'],['120','+90 min']]);energyRow.before(timeRow);
+
+  const sleepRow=$('[data-f="sleep"]').closest('.row');
+  const garminSleep=document.createElement('div');garminSleep.className='row';garminSleep.innerHTML='<span class="label">Sueño Garmin (opcional)</span><div class="profile-grid"><div><label class="v32note">Horas</label><input id="sleepHours" type="number" step="0.1" min="0" max="16" inputmode="decimal" placeholder="7,5"></div><div><label class="v32note">Puntuación</label><input id="sleepScore" type="number" min="0" max="100" inputmode="numeric" placeholder="82"></div></div><label class="btn alt" style="text-align:center;margin-top:9px">📷 SUBIR CAPTURA GARMIN<input class="hide" id="sleepImage" type="file" accept="image/*"></label><img id="sleepPreview" class="sleep-preview hide">';sleepRow.after(garminSleep);
+
+  const weightRow=$('#weight').closest('.row');
+  const habits=document.createElement('div');habits.className='row';habits.innerHTML='<span class="label">Hábitos de hoy (opcionales)</span><div class="profile-grid"><div><label class="v32note">Agua (litros)</label><input id="waterToday" type="number" min="0" max="10" step="0.25" inputmode="decimal" placeholder="2"></div><div><label class="v32note">Cigarrillos</label><input id="smokesToday" type="number" min="0" step="1" inputmode="numeric" placeholder="0"></div></div>'+optionButtons('alcohol',[['Nada','Nada'],['Poco','Poco'],['Social','Social'],['Alto','Alto']]);weightRow.after(habits);
+  bindSingle();
+
+  const training=$('[data-f="training"]');
+  training.addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;const no=b.dataset.v==='No';$$('.v32-training').forEach(x=>x.classList.toggle('hide',no));if(no){const other=$('[data-f="place"] [data-v="Otro"]');other?.click()}});
+  $('#sleepImage').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;if(f.size>1500000){e.target.value='';return notify('La captura debe pesar menos de 1,5 MB')}const r=new FileReader();r.onload=()=>{sleepImage=r.result;$('#sleepPreview').src=sleepImage;$('#sleepPreview').classList.remove('hide')};r.readAsDataURL(f)});
+
+  const todayMeta=()=>({trainingType:chosen('trainingType'),availableTime:chosen('availableTime'),sleepHours:$('#sleepHours').value,sleepScore:$('#sleepScore').value,sleepImage,water:$('#waterToday').value,smokes:$('#smokesToday').value,alcohol:chosen('alcohol')});
+  $('#check').addEventListener('submit',e=>{const trains=$('[data-f="training"] .on')?.dataset.v==='Sí';if(trains&&(!chosen('trainingType')||!chosen('availableTime'))){e.preventDefault();e.stopImmediatePropagation();notify('Selecciona entrenamiento y tiempo');return}daily[iso()]=todayMeta();try{localStorage.setItem(DAILY,JSON.stringify(daily))}catch{daily[iso()].sleepImage='';localStorage.setItem(DAILY,JSON.stringify(daily));notify('Datos guardados sin captura: almacenamiento lleno')}setTimeout(updateSummary,0)},true);
+  function updateSummary(){const m=daily[iso()];if(!m)return;const s=$('#summary');if(s&&!$('#saved').classList.contains('hide')){const extra=[m.trainingType,m.availableTime&&m.availableTime+' min'].filter(Boolean).join(' · ');if(extra&&!s.textContent.includes(extra))s.textContent+=' · '+extra}}
+  updateSummary();
+  ['start','garmin'].forEach(id=>$('#'+id)?.addEventListener('click',()=>{const map={'Bicicleta':'Bici','Running':'Carrera','Trail running':'Carrera','Natación':'Otro','Caminar':'Caminar','Movilidad':'Movilidad','Fuerza':'Fuerza'};const v=map[daily[iso()]?.trainingType];if(v&&[...$('#type').options].some(o=>o.value===v))$('#type').value=v}));
+
+  const dataView=$('#v-datos');
+  const profileCard=document.createElement('div');profileCard.className='card';profileCard.innerHTML=`<h2>Perfil del entrenador</h2><p class="sub">Base para crear y adaptar tu planificación.</p><form id="profileForm"><div class="profile-grid"><div><label class="label">Edad</label><input id="pAge" type="number"></div><div><label class="label">Altura (m)</label><input id="pHeight" type="number" step=".01"></div><div><label class="label">Peso aproximado</label><input id="pWeight"></div><div><label class="label">Días/semana</label><input id="pDays" type="number" min="1" max="7"></div></div><div class="row"><span class="label">Recursos disponibles</span><div class="resource-grid" id="resources">${['Gimnasio','Bici carretera','Piscina','Spa','Mancuernas','Gomas','Running','Trail running'].map(x=>`<button type="button" class="chip" data-resource="${x}">${x}</button>`).join('')}</div><span class="badge">Running, trail y bici: pendientes de autorización</span></div><div class="row"><span class="label">Objetivos</span><div class="goalbox"><strong>💪 Físico y fuerza</strong>Primer hito: diciembre de 2026</div><div class="goalbox"><strong>🦶 Recuperar el Aquiles</strong>Progresión según fisio y respuesta a 24 h</div><div class="goalbox"><strong>🚭 Dejar de fumar</strong>Inicio previsto: 8 de septiembre de 2026</div><div class="goalbox"><strong>🏃 San Silvestre 2027</strong>Condicionada a la recuperación del tendón</div></div><div class="row"><span class="label">Hábitos</span><div class="profile-grid"><div><label class="v32note">Agua diaria (L)</label><input id="pWater" type="number" step=".25"></div><div><label class="v32note">Dejar tabaco</label><input id="pQuit" type="date"></div></div></div><div class="row"><span class="label">Suplementación</span><p class="v32note">Marca intereses para revisarlos; no implica una recomendación automática.</p><div class="resource-grid" id="supplements">${['Creatina','Proteína','Vitamina D','Omega-3','Magnesio','Colágeno'].map(x=>`<button type="button" class="chip" data-supplement="${x}">${x}</button>`).join('')}</div><textarea id="suppNotes" style="margin-top:9px" placeholder="Suplementos actuales, dudas o indicaciones médicas…"></textarea></div><button class="btn">GUARDAR PERFIL</button></form>`;
+  dataView.prepend(profileCard);
+  $('#pAge').value=profile.age;$('#pHeight').value=profile.height;$('#pWeight').value=profile.weight;$('#pDays').value=profile.days;$('#pWater').value=profile.waterGoal;$('#pQuit').value=profile.quitDate;$('#suppNotes').value=profile.supplementNotes||'';
+  $$('[data-resource]').forEach(b=>{b.classList.toggle('on',profile.resources.includes(b.dataset.resource));b.onclick=()=>b.classList.toggle('on')});
+  $$('[data-supplement]').forEach(b=>{b.classList.toggle('on',profile.supplements.includes(b.dataset.supplement));b.onclick=()=>b.classList.toggle('on')});
+  $('#profileForm').onsubmit=e=>{e.preventDefault();profile={...profile,age:+$('#pAge').value,height:+$('#pHeight').value,weight:$('#pWeight').value,days:+$('#pDays').value,waterGoal:+$('#pWater').value,quitDate:$('#pQuit').value,resources:$$('[data-resource].on').map(x=>x.dataset.resource),supplements:$$('[data-supplement].on').map(x=>x.dataset.supplement),supplementNotes:$('#suppNotes').value};localStorage.setItem(PROFILE,JSON.stringify(profile));notify('Perfil guardado')};
+
+  const oldExport=$('#export');oldExport.onclick=()=>{const core=read(CORE,{checkins:{},activities:[]});const pack={...core,adaptiveProfile:profile,adaptiveDaily:daily,backupVersion:'0.3.2'};const b=new Blob([JSON.stringify(pack,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='entrenador-backup-'+iso()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);notify('Backup completo exportado')};
+  $('#import').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(x.adaptiveProfile)localStorage.setItem(PROFILE,JSON.stringify(x.adaptiveProfile));if(x.adaptiveDaily)localStorage.setItem(DAILY,JSON.stringify(x.adaptiveDaily))}catch{}};r.readAsText(f)});
+  $('#date').innerHTML=$('#date').innerHTML.replace(/v0\.3(?:\.1)?/,'v0.3.2');$('.version').textContent='Entrenador Personal · v0.3.2';
+})();
