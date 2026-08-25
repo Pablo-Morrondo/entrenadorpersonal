@@ -91,10 +91,11 @@
 
   <div class="card">
     <h2>Acciones rápidas</h2>
-    <div class="quick">
+    <div class="quick" style="grid-template-columns:repeat(2,1fr)">
       <button class="secondary" onclick="go('entreno')">🏋️ Entreno</button>
       <button class="secondary" onclick="go('aquiles')">🦶 Aquiles</button>
       <button class="secondary" onclick="markRest()">😴 Descanso</button>
+      <button class="secondary" onclick="go('garmin')">⌚ Garmin</button>
     </div>
   </div>
 </section>
@@ -117,8 +118,20 @@
     <div class="card"><div class="sub">Entrenos</div><div class="metric" id="workoutCount">0</div><div class="sub">registrados</div></div>
   </div>
   <div class="card">
+    <h2>Actividades Garmin</h2>
+    <div id="garminHistory"></div>
+  </div>
+  <div class="card">
     <h2>Historial reciente</h2>
     <div id="history"></div>
+  </div>
+  <div class="card">
+    <h2>Copia de seguridad</h2>
+    <div class="quick">
+      <button class="secondary" onclick="exportData()">Exportar datos</button>
+      <label class="secondary" style="text-align:center;cursor:pointer">Importar datos<input type="file" accept="application/json,.json" style="display:none" onchange="importBackup(event)"></label>
+    </div>
+    <div class="tiny" style="margin-top:8px">Haz una copia periódica mientras los datos se guarden localmente en el iPhone.</div>
   </div>
 </section>
 
@@ -156,6 +169,26 @@
   </div>
   <div class="card"><h2>Próximos eventos</h2><div id="events"></div></div>
 </section>
+
+<section id="garmin" class="view">
+  <div class="card">
+    <h2>Importar actividad Garmin</h2>
+    <div class="row"><label>Captura</label><input id="garminPhoto" type="file" accept="image/*" onchange="previewGarmin(event)"></div>
+    <img id="garminPreview" style="display:none;width:100%;border-radius:14px;margin:10px 0">
+    <div class="row"><label>Tipo</label><select id="activityType"><option>Bici carretera</option><option>Bici estática</option><option>Running</option><option>Caminar</option><option>Otra</option></select></div>
+    <div class="row"><label>Fecha</label><input id="activityDate" type="date"></div>
+    <div class="row"><label>Duración (min)</label><input id="activityDuration" type="number" placeholder="82"></div>
+    <div class="row"><label>Distancia (km)</label><input id="activityDistance" type="number" step="0.01" placeholder="36.4"></div>
+    <div class="row"><label>FC media</label><input id="avgHr" type="number" placeholder="ppm"></div>
+    <div class="row"><label>FC máxima</label><input id="maxHr" type="number" placeholder="ppm"></div>
+    <div class="row"><label>Desnivel (m)</label><input id="elevation" type="number" placeholder="m"></div>
+    <div class="row"><label>Calorías</label><input id="calories" type="number" placeholder="kcal"></div>
+    <div class="row"><label>RPE (1-10)</label><input id="activityRpe" type="number" min="1" max="10"></div>
+    <div class="row"><label>Aquiles después</label><select id="postAchilles"><option>Bien</option><option>Igual</option><option>Más cargado</option><option>Peor</option><option>Sin dato</option></select></div>
+    <textarea id="activityNotes" placeholder="Notas opcionales"></textarea>
+    <button class="primary" onclick="saveGarmin()">Guardar actividad Garmin</button>
+  </div>
+</section>
 </main>
 
 <nav class="tabs">
@@ -167,8 +200,8 @@
 </nav>
 
 <script>
-const KEY='pabloTrainingAppV01';
-const defaults={checkins:[],achilles:[],physio:[],workouts:[],events:[],currentStatus:'green',currentWorkout:[]};
+const KEY='pabloTrainingAppV02';
+const defaults={checkins:[],achilles:[],physio:[],workouts:[],events:[],garmin:[],currentStatus:'green',currentWorkout:[]};
 let db=JSON.parse(localStorage.getItem(KEY)||'null')||defaults;
 Object.keys(defaults).forEach(k=>{if(db[k]===undefined)db[k]=defaults[k]});
 
@@ -176,6 +209,7 @@ const iso=()=>new Date().toISOString().slice(0,10);
 const fmtDate=(d)=>new Date(d+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'});
 document.getElementById('todayDate').textContent=new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
 document.getElementById('eventDate').value=iso();
+document.getElementById('activityDate').value=iso();
 
 function save(){localStorage.setItem(KEY,JSON.stringify(db));render();}
 function go(id){
@@ -232,6 +266,27 @@ function addEvent(){
   if(!eventDate.value)return;
   db.events.push({date:eventDate.value,type:eventType.value,notes:eventNotes.value.trim()});eventNotes.value='';save();
 }
+
+let pendingGarminPhoto='';
+function previewGarmin(ev){
+  const f=ev.target.files&&ev.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{pendingGarminPhoto=r.result;garminPreview.src=pendingGarminPhoto;garminPreview.style.display='block'};
+  r.readAsDataURL(f);
+}
+function saveGarmin(){
+  const rec={id:Date.now(),date:activityDate.value||iso(),type:activityType.value,duration:activityDuration.value?+activityDuration.value:null,distance:activityDistance.value?+activityDistance.value:null,avgHr:avgHr.value?+avgHr.value:null,maxHr:maxHr.value?+maxHr.value:null,elevation:elevation.value?+elevation.value:null,calories:calories.value?+calories.value:null,rpe:activityRpe.value?+activityRpe.value:null,postAchilles:postAchilles.value,notes:activityNotes.value.trim(),photo:pendingGarminPhoto||null};
+  try{db.garmin.push(rec);save();pendingGarminPhoto='';garminPreview.style.display='none';garminPhoto.value='';alert('Actividad Garmin guardada');go('progreso')}
+  catch(e){db.garmin.pop();alert('La imagen es demasiado grande. Prueba con una captura recortada.');}
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='entrenador-backup-'+iso()+'.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function importBackup(ev){
+  const f=ev.target.files&&ev.target.files[0]; if(!f)return; const r=new FileReader();
+  r.onload=()=>{try{db=JSON.parse(r.result);Object.keys(defaults).forEach(k=>{if(db[k]===undefined)db[k]=defaults[k]});save();alert('Copia importada correctamente')}catch(e){alert('Archivo no válido')}};r.readAsText(f);
+}
+
 function render(){
   const ci=[...db.checkins].reverse().find(x=>x.date===iso())||[...db.checkins].reverse()[0];
   if(ci){energyMetric.textContent=ci.energy;todayWorkout.textContent=ci.train==='No'?'Descanso':ci.place;todayDuration.textContent=ci.train==='No'?'Sin entrenamiento':`${ci.duration} min · ${ci.time}`;}
@@ -240,6 +295,7 @@ function render(){
   document.querySelectorAll('[data-status]').forEach(b=>b.classList.toggle('active',b.dataset.status===db.currentStatus));
   const weights=db.checkins.filter(x=>x.weight!=null);lastWeight.textContent=weights.length?weights[weights.length-1].weight.toFixed(1):'—';
   workoutCount.textContent=db.workouts.length;
+  garminHistory.innerHTML=db.garmin.slice(-8).reverse().map(a=>`<div class="calendar-item"><div class="dot"></div><div><strong>${fmtDate(a.date)} · ${a.type}</strong><div class="tiny">${a.duration??'—'} min · ${a.distance??'—'} km · FC ${a.avgHr??'—'} · RPE ${a.rpe??'—'} · Aquiles ${a.postAchilles}</div></div></div>`).join('')||'<div class="tiny">Aún no hay actividades Garmin.</div>';
   history.innerHTML=db.workouts.slice(-8).reverse().map(w=>`<div class="calendar-item"><div class="dot"></div><div><strong>${fmtDate(w.date)} · ${w.goal}</strong><div class="tiny">${w.load} · ${w.exercises.length} ejercicios</div></div></div>`).join('')||'<div class="tiny">Aún no hay entrenamientos registrados.</div>';
   events.innerHTML=db.events.slice().sort((a,b)=>a.date.localeCompare(b.date)).filter(e=>e.date>=iso()).slice(0,12).map(e=>`<div class="calendar-item"><div class="dot"></div><div><strong>${fmtDate(e.date)} · ${e.type}</strong><div class="tiny">${e.notes||'Sin notas'}</div></div></div>`).join('')||'<div class="tiny">Sin eventos próximos.</div>';
   renderExercises();
