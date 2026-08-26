@@ -1,0 +1,9 @@
+{
+  "name": "entrenador-personal-coach",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-26",
+  "vars": {
+    "ALLOWED_ORIGIN": "https://pablo-morrondo.github.io",
+    "OPENAI_MODEL": "gpt-5-mini"
+  }
+}
