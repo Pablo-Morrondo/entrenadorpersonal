@@ -41,8 +41,13 @@ export default {
     if(!env.OPENAI_API_KEY)return Response.json({error:'Server not configured'},{status:503,headers});
     let payload;try{payload=await request.json()}catch{return Response.json({error:'Invalid JSON'},{status:400,headers})}
     const safePayload={profile:payload.profile||{},checkin:payload.checkin||{},physio:payload.physio||{},recentHistory:Array.isArray(payload.recentHistory)?payload.recentHistory.slice(-14):[],confirmedRestrictions:payload.confirmedRestrictions||[]};
-    const api=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Authorization':`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:env.OPENAI_MODEL||'gpt-5-mini',store:false,instructions:INSTRUCTIONS,input:JSON.stringify(safePayload),text:{format:{type:'json_schema',name:'coach_plan',strict:true,schema:SCHEMA}}})});
-    const data=await api.json();
+    let api,data;
+    try{
+      api=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Authorization':`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:env.OPENAI_MODEL||'gpt-5-mini',store:false,instructions:INSTRUCTIONS,input:JSON.stringify(safePayload),text:{format:{type:'json_schema',name:'coach_plan',strict:true,schema:SCHEMA}}})});
+      data=await api.json();
+    }catch(error){
+      return Response.json({error:'No se pudo conectar con OpenAI',detail:error?.message||'Error de conexión'},{status:502,headers});
+    }
     if(!api.ok)return Response.json({error:'Coach service error',detail:data?.error?.message||'Unknown error'},{status:502,headers});
     const output=data.output_text||data.output?.flatMap(x=>x.content||[]).find(x=>x.type==='output_text')?.text;
     try{return Response.json(JSON.parse(output),{headers})}catch{return Response.json({error:'Invalid coach response'},{status:502,headers})}
