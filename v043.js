@@ -1,5 +1,10 @@
 (() => {
   'use strict';
+  const CORE='entrenador-v03';
+  const today=()=>{const d=new Date(Date.now()-new Date().getTimezoneOffset()*60000);return d.toISOString().slice(0,10)};
+  const readCore=()=>{try{return {checkins:{},activities:[],...JSON.parse(localStorage.getItem(CORE)||'{}')}}catch{return {checkins:{},activities:[]}}};
+  const writeCore=db=>localStorage.setItem(CORE,JSON.stringify(db));
+
   const init=()=>{
     const group=document.querySelector('[data-f="place"]');
     if(!group||group.dataset.multiReady==='1')return;
@@ -7,7 +12,7 @@
 
     const row=group.closest('.row');
     const label=row?.querySelector('.label');
-    if(label) label.textContent='Opciones disponibles hoy · puedes marcar varias';
+    if(label)label.textContent='Opciones disponibles hoy · puedes marcar varias';
 
     const ensure=(value,labelText)=>{
       if(group.querySelector(`[data-v="${value}"]`))return;
@@ -18,43 +23,53 @@
     ensure('Spa','🧖 Spa');
     ensure('Piscina','🏊 Piscina');
 
-    group.addEventListener('click',e=>{
+    const selectedPlaces=()=>[...group.querySelectorAll('.chip.on')].map(b=>b.dataset.v||b.textContent.trim()).filter(Boolean);
+    const saved=readCore().checkins?.[today()]||{};
+    const savedPlaces=Array.isArray(saved.placesAvailable)&&saved.placesAvailable.length?saved.placesAvailable:(saved.place?[saved.place]:[]);
+    if(savedPlaces.length){
+      group.querySelectorAll('.chip').forEach(b=>b.classList.toggle('on',savedPlaces.includes(b.dataset.v)));
+    }
+
+    group.onclick=e=>{
       const b=e.target.closest('.chip');
       if(!b)return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
       b.classList.toggle('on');
-    },true);
-
-    const selectedPlaces=()=>[...group.querySelectorAll('.chip.on')].map(b=>b.dataset.v||b.textContent.trim()).filter(Boolean);
+    };
 
     const nativeFetch=window.fetch.bind(window);
-    window.fetch=async (input,init={})=>{
+    window.fetch=async (input,options={})=>{
       const url=typeof input==='string'?input:input?.url||'';
-      if(url.includes('entrenador-personal-coach')&&init?.body){
+      if(url.includes('entrenador-personal-coach')&&options?.body){
         try{
-          const body=JSON.parse(init.body);
-          const places=selectedPlaces();
+          const body=JSON.parse(options.body);
+          const core=readCore(), c=core.checkins?.[today()]||{};
+          const places=selectedPlaces().length?selectedPlaces():(Array.isArray(c.placesAvailable)&&c.placesAvailable.length?c.placesAvailable:(c.place?[c.place]:[]));
           if(body?.checkin){
             body.checkin.places_available=places;
             body.checkin.place=places.join(', ');
           }
-          init={...init,body:JSON.stringify(body)};
+          options={...options,body:JSON.stringify(body)};
         }catch{}
       }
-      return nativeFetch(input,init);
+      return nativeFetch(input,options);
     };
 
     const form=document.querySelector('#check');
     form?.addEventListener('submit',()=>{
+      const places=selectedPlaces();
       setTimeout(()=>{
-        const places=selectedPlaces();
+        const core=readCore(), d=today();
+        if(core.checkins?.[d]&&places.length){
+          core.checkins[d].placesAvailable=places;
+          core.checkins[d].place=places.join(', ');
+          writeCore(core);
+        }
         const summary=document.querySelector('#summary');
         if(summary&&places.length){
-          const txt=`Opciones disponibles: ${places.join(' · ')}`;
-          if(!summary.textContent.includes('Opciones disponibles:')) summary.insertAdjacentHTML('beforeend',`<br>${txt}`);
+          const base=summary.textContent.replace(/ · Opciones disponibles:.*$/,'');
+          summary.textContent=`${base} · Opciones disponibles: ${places.join(' / ')}`;
         }
-      },150);
+      },30);
     });
 
     const style=document.createElement('style');
@@ -64,7 +79,8 @@
     const version=document.querySelector('.version');
     if(version)version.textContent='Entrenador Personal · v0.4.3';
     const date=document.querySelector('#date');
-    if(date)date.innerHTML=date.innerHTML.replace(/v0\.4(?:\.2)?/,'v0.4.3');
+    if(date)date.innerHTML=date.innerHTML.replace(/v0\.4(?:\.2)?|v0\.3\.2/,'v0.4.3');
   };
+
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,0));else setTimeout(init,0);
 })();
