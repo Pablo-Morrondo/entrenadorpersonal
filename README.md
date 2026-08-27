@@ -1,4 +1,9 @@
-# Entrenador Personal – PWA v0.5.2
+# Entrenador Personal – PWA v0.5.3
+
+## Corrección de v0.5.3
+
+- Progreso y Calendario recargan sus datos inmediatamente después de recuperar una sesión manual.
+- La sesión ya importada por v0.5.2 se sincroniza automáticamente al abrir esta versión.
 
 ## Novedades de v0.5.2
 
