@@ -1,4 +1,4 @@
-const C='entrenador-personal-v0.5.0',A=['./','./index.html','./v032.js','./v04.js?v=050','./v042-base.js?v=042','./v043.js?v=043','./v05.js?v=050','./manifest.webmanifest','./icon.svg'];
+const C='entrenador-personal-v0.5.1',A=['./','./index.html','./v032.js','./v04.js?v=051','./v042-base.js?v=042','./v043.js?v=043','./v05.js?v=050','./v051.js?v=051','./manifest.webmanifest','./icon.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(A)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
