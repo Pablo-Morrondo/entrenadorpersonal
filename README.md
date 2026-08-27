@@ -1,4 +1,12 @@
-# Entrenador Personal – PWA v0.5.3
+# Entrenador Personal – PWA v0.5.4
+
+## Historial unificado en v0.5.4
+
+- Cada entrenamiento aparece una sola vez, con duración y ejercicios completados.
+- Un único editor permite cambiar nombre, fecha, duración, pesos, repeticiones y estado de todas las series.
+- Eliminar una sesión borra conjuntamente su ficha y su actividad asociada.
+- El calendario muestra el nombre real de la sesión y el resumen de ejercicios.
+- Corregida la versión visible duplicada (`v0.5.3.3`).
 
 ## Corrección de v0.5.3
 
