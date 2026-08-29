@@ -1,4 +1,12 @@
-# Entrenador Personal – PWA v0.5.4
+# Entrenador Personal – PWA v0.5.8
+
+## Historial y entrenador en v0.5.8
+
+- Migración idempotente de la sesión real del 28/08/2026: 20 minutos de bicicleta estática, extensión de cuádriceps, curl femoral, abductores, aductores, core y rehabilitación.
+- Las repeticiones no registradas de femoral, abductores y aductores permanecen vacías.
+- La falta de autorización explícita ya no se interpreta como prohibición automática; las restricciones explícitas y señales rojas siguen teniendo prioridad.
+- Las actividades realizadas y bien toleradas, incluida la bicicleta estática, se consideran disponibles y se ajustan según la respuesta a 24 horas.
+- El entrenador usa el historial reciente para variar ejercicios y grupos musculares en lugar de repetir la misma plantilla.
 
 ## Historial unificado en v0.5.4
 
