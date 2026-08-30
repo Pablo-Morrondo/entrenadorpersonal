@@ -14,5 +14,6 @@
     .then(()=>load('./v059.js?v=059'))
     .then(()=>load('./v060.js?v=060'))
     .then(()=>load('./v065.js?v=065'))
+    .then(()=>load('./v066.js?v=066'))
     .catch(err=>console.error('No se pudo cargar v0.6',err));
 })();
