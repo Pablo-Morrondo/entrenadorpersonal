@@ -22,10 +22,10 @@ function cors(origin,allowed){const ok=origin===allowed||origin===`${allowed}/`;
 function compactPlan(plan){if(!plan||typeof plan!=='object')return null;const s=plan.session||plan;return s&&typeof s==='object'?{title:s.title||'',objective:s.objective||'',duration_minutes:s.duration_minutes||0,load:s.load||'',reason:s.reason||'',exercises:Array.isArray(s.exercises)?s.exercises.slice(0,10):[]}:null}
 function compactWorkout(w){if(!w||typeof w!=='object')return null;return {title:w.title||'',status:w.status||'',exercises:Array.isArray(w.exercises)?w.exercises.slice(0,10).map(e=>({name:e.name||'',done:Boolean(e.done),sets:Array.isArray(e.sets)?e.sets.slice(0,5):[]})):[]}}
 
-async function responses(env,{instructions,input,schema,name,timeoutMs=20000,model}){
+async function responses(env,{instructions,input,schema,name,timeoutMs=20000,model,maxOutputTokens=1600}){
  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),timeoutMs);const started=Date.now();let api,data;
  try{
-  api=await fetch('https://api.openai.com/v1/responses',{method:'POST',signal:controller.signal,headers:{'Authorization':`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:model||env.OPENAI_MODEL||'gpt-5-mini',store:false,instructions,input,text:{format:{type:'json_schema',name,strict:true,schema}}})});
+  api=await fetch('https://api.openai.com/v1/responses',{method:'POST',signal:controller.signal,headers:{'Authorization':`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:model||env.OPENAI_MODEL||'gpt-5-mini',store:false,instructions,input,reasoning:{effort:'minimal'},max_output_tokens:maxOutputTokens,text:{verbosity:'low',format:{type:'json_schema',name,strict:true,schema}}})});
   const requestId=api.headers.get('x-request-id')||null;
   data=await api.json().catch(()=>({}));
   if(!api.ok){const msg=data?.error?.message||`OpenAI HTTP ${api.status}`;let code='openai_error',status=502;if(api.status===401||api.status===403){code='openai_auth';status=502}else if(api.status===429){code='openai_rate_or_quota';status=429}else if(api.status>=500){code='openai_upstream';status=503}throw new UpstreamError(msg,{code,status,upstreamStatus:api.status,requestId})}
@@ -42,7 +42,7 @@ async function responses(env,{instructions,input,schema,name,timeoutMs=20000,mod
 export default{async fetch(request,env){
  const origin=request.headers.get('Origin')||'';const headers=cors(origin,env.ALLOWED_ORIGIN);const url=new URL(request.url);
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
- if(url.pathname==='/health')return Response.json({ok:true,version:'0.7.1',model:env.OPENAI_MODEL||'gpt-5-mini',chat_model:env.OPENAI_CHAT_MODEL||env.OPENAI_MODEL||'gpt-5-mini'},{headers});
+ if(url.pathname==='/health')return Response.json({ok:true,version:'0.7.2',model:env.OPENAI_MODEL||'gpt-5-mini',chat_model:env.OPENAI_CHAT_MODEL||env.OPENAI_MODEL||'gpt-5-mini'},{headers});
  if(request.method!=='POST')return Response.json({error:'Not found'},{status:404,headers});
  if(origin&&origin!==env.ALLOWED_ORIGIN)return Response.json({error:'Origin not allowed'},{status:403,headers});
  if(!env.OPENAI_API_KEY)return Response.json({error:'Server not configured',code:'missing_api_key'},{status:503,headers});
@@ -50,12 +50,12 @@ export default{async fetch(request,env){
  try{
   if(url.pathname==='/coach'){
    const safePayload={profile:{age:payload.profile?.age,height_m:payload.profile?.height_m,weight:payload.profile?.weight,resources:payload.profile?.resources||[],goals:payload.profile?.goals||{},available_minutes:payload.profile?.available_minutes},checkin:payload.checkin||{},physio:{appointment_today:payload.physio?.appointment_today,notes:String(payload.physio?.notes||'').slice(0,1800),current_state:String(payload.physio?.current_state||'').slice(0,600)},recentHistory:Array.isArray(payload.recentHistory)?payload.recentHistory.slice(-8):[],confirmedRestrictions:payload.confirmedRestrictions||[]};
-   const out=await responses(env,{instructions:INSTRUCTIONS,input:JSON.stringify(safePayload),schema:SCHEMA,name:'coach_plan',timeoutMs:Number(env.COACH_TIMEOUT_MS)||25000});
+   const out=await responses(env,{instructions:INSTRUCTIONS,input:JSON.stringify(safePayload),schema:SCHEMA,name:'coach_plan',timeoutMs:Number(env.COACH_TIMEOUT_MS)||25000,maxOutputTokens:2200});
    return Response.json({...out.data,_meta:out.meta},{headers});
   }
   if(url.pathname==='/chat'){
    const safe={message:String(payload.message||'').slice(0,700),checkin:payload.checkin||{},currentPlan:compactPlan(payload.currentPlan),workoutProgress:compactWorkout(payload.workoutProgress),recentHistory:Array.isArray(payload.recentHistory)?payload.recentHistory.slice(-5).map(x=>({date:x.date||x.workoutDate||'',type:x.type||'',notes:String(x.notes||'').slice(0,220),exerciseLog:Array.isArray(x.exerciseLog)?x.exerciseLog.slice(0,8):[]})):[],confirmedRestrictions:payload.confirmedRestrictions||[]};
-   const out=await responses(env,{instructions:CHAT_INSTRUCTIONS,input:JSON.stringify(safe),schema:CHAT_SCHEMA,name:'coach_chat',timeoutMs:Number(env.CHAT_TIMEOUT_MS)||12000,model:env.OPENAI_CHAT_MODEL||env.OPENAI_MODEL||'gpt-5-mini'});
+   const out=await responses(env,{instructions:CHAT_INSTRUCTIONS,input:JSON.stringify(safe),schema:CHAT_SCHEMA,name:'coach_chat',timeoutMs:Number(env.CHAT_TIMEOUT_MS)||12000,model:env.OPENAI_CHAT_MODEL||env.OPENAI_MODEL||'gpt-5-mini',maxOutputTokens:1200});
    return Response.json({...out.data,_meta:out.meta},{headers});
   }
   if(url.pathname==='/garmin'){
