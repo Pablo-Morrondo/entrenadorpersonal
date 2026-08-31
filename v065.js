@@ -18,12 +18,13 @@ function normalizeWorkout(w){if(!w||!Array.isArray(w.exercises))return null;w.ex
 function createWorkout(){
  const p=getPlan();if(!p?.session||!Array.isArray(p.session.exercises))throw new Error('La sesión actual no tiene ejercicios válidos. Vuelve a generar el entrenamiento.');
  const all=getStore(),old=normalizeWorkout(all[iso()]);
+ if(old&&(old.completedAt||old.status==='completed'))throw new Error('El entrenamiento de hoy ya está completado y guardado en el historial.');
  if(old&&!old.completedAt&&old.planGeneratedAt===p.generatedAt)return old;
  const w={date:iso(),title:p.session.title||'Sesión de hoy',status:'in_progress',startedAt:new Date().toISOString(),planGeneratedAt:p.generatedAt||'',exercises:p.session.exercises.map((e,i)=>{const last=lastExercise(e.name),n=Math.max(1,Number(e.sets)||1);return {id:'e'+i,name:e.name||`Ejercicio ${i+1}`,planned:e,done:false,sets:Array.from({length:n},(_,j)=>({set:j+1,weight:last?.sets?.[j]?.weight||'',reps:repsDefault(e.reps),done:false}))}})};
  all[iso()]=w;write(WORKOUTS,all);return w;
 }
 function closeModal(m){m?.remove();if(!document.querySelector('.v05-modal'))document.body.style.overflow=''}
-function discard(){const all=getStore(),w=all[iso()];if(!w||w.completedAt)return notify('No hay un entrenamiento pendiente');if(!confirm('¿Descartar el entrenamiento en curso de hoy? Se borrarán las series marcadas y se conservará la propuesta.'))return;delete all[iso()];write(WORKOUTS,all);notify('Entrenamiento descartado');setTimeout(()=>location.reload(),300)}
+function discard(){const all=getStore(),w=all[iso()];if(!w||w.completedAt||w.status==='completed')return notify('No hay un entrenamiento pendiente');if(!confirm('¿Descartar el entrenamiento en curso de hoy? Se borrarán las series marcadas y se conservará la propuesta.'))return;delete all[iso()];write(WORKOUTS,all);notify('Entrenamiento descartado');setTimeout(()=>location.reload(),300)}
 function finish(w){w.completedAt=new Date().toISOString();w.status='completed';saveWorkout(w);const core=read(CORE,{checkins:{},activities:[]});core.activities=(core.activities||[]).filter(a=>a.workoutDate!==w.date);core.activities.push({id:'guided-'+w.date,date:w.date,workoutDate:w.date,type:'Entrenamiento',duration:'',distance:'',notes:w.title,exerciseLog:w.exercises.map(e=>({name:e.name,sets:e.sets,done:e.done})),savedAt:w.completedAt,completedAt:w.completedAt,status:'completed',source:'guided'});write(CORE,core);alert('Entrenamiento finalizado y guardado.');location.reload()}
 
 function openWorkout(w){
@@ -48,7 +49,7 @@ function openChat(w=null){
 function replaceActionButtons(){
  const start=$('#v05StartWorkout');if(start&&!start.dataset.v065){const n=start.cloneNode(true);n.dataset.v065='1';start.replaceWith(n);n.addEventListener('click',e=>{e.preventDefault();try{const w=createWorkout();openWorkout(w)}catch(err){console.error(err);alert('No se pudo iniciar el entrenamiento: '+err.message)}})}
  const chat=$('#v05ChatBefore');if(chat&&!chat.dataset.v065){const n=chat.cloneNode(true);n.dataset.v065='1';chat.replaceWith(n);n.addEventListener('click',e=>{e.preventDefault();try{openChat(getStore()[iso()]||null)}catch(err){console.error(err);alert('No se pudo abrir el chat: '+err.message)}})}
- const resume=$('#v062Resume');if(resume&&!resume.dataset.v065){const n=resume.cloneNode(true);n.dataset.v065='1';resume.replaceWith(n);n.addEventListener('click',()=>{try{const w=getStore()[iso()]||createWorkout();openWorkout(w)}catch(err){alert('No se pudo continuar: '+err.message)}})}
+ const resume=$('#v062Resume');if(resume&&!resume.dataset.v065){const n=resume.cloneNode(true);n.dataset.v065='1';resume.replaceWith(n);n.addEventListener('click',()=>{try{const existing=getStore()[iso()];if(existing&&(existing.completedAt||existing.status==='completed'))throw new Error('El entrenamiento de hoy ya está completado y guardado en el historial.');const w=existing||createWorkout();openWorkout(w)}catch(err){alert('No se pudo continuar: '+err.message)}})}
  const discardBtn=$('#v062Discard');if(discardBtn&&!discardBtn.dataset.v065){const n=discardBtn.cloneNode(true);n.dataset.v065='1';discardBtn.replaceWith(n);n.addEventListener('click',discard)}
 }
 const obs=new MutationObserver(()=>replaceActionButtons());obs.observe(document.body,{childList:true,subtree:true});replaceActionButtons();setInterval(replaceActionButtons,1000);

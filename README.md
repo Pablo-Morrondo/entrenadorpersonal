@@ -1,4 +1,12 @@
-# Entrenador Personal – PWA v0.5.8
+# Entrenador Personal – PWA v0.7.3
+
+## Integridad de entrenamientos en v0.7.3
+
+- Una sesión completada deja de mostrarse como propuesta o entrenamiento en curso en Inicio.
+- Los botones de Inicio solo eliminan propuestas o sesiones `in_progress`; una sesión `completed` queda protegida.
+- La reconciliación conserva una sola actividad por entrenamiento en Historial, Progreso y Calendario.
+- Migración idempotente de la sesión real del 31/08/2026, sin modificar los registros históricos del 27 y 28 de agosto.
+- Se mantienen las claves locales existentes; la actualización no limpia el historial ni los datos diarios.
 
 ## Historial y entrenador en v0.5.8
 

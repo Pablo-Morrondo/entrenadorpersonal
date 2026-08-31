@@ -8,7 +8,7 @@ const write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 function deleteTodayCompletely(){
  const day=iso();
  const all=read(WORKOUTS,{}),w=all[day];
- if(w?.completedAt){alert('Este entrenamiento ya está finalizado. Para borrarlo usa Historial.');return;}
+ if(w&&(w.completedAt||w.status==='completed')){alert('Este entrenamiento ya está finalizado. Para borrarlo usa Historial.');return;}
  if(!confirm('¿Eliminar completamente el entrenamiento de hoy? Se borrarán la sesión iniciada, las series marcadas y la propuesta del entrenador. Además, hoy quedará marcado como NO entreno.'))return;
  delete all[day];write(WORKOUTS,all);
  const plans=read(PLANS,{});delete plans[day];write(PLANS,plans);

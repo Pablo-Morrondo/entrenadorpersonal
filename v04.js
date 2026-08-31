@@ -13,10 +13,11 @@
     .then(()=>load('./v058.js?v=058'))
     .then(()=>load('./v059.js?v=059'))
     .then(()=>load('./v060.js?v=060'))
-    .then(()=>load('./v065.js?v=065'))
-    .then(()=>load('./v066.js?v=066'))
+    .then(()=>load('./v065.js?v=073'))
+    .then(()=>load('./v066.js?v=073'))
     .then(()=>load('./v068.js?v=068'))
-    .then(()=>load('./v069.js?v=069'))
+    .then(()=>load('./v069.js?v=073'))
     .then(()=>load('./v070.js?v=072'))
-    .catch(err=>console.error('No se pudo cargar v0.7.2',err));
+    .then(()=>load('./v073.js?v=073'))
+    .catch(err=>console.error('No se pudo cargar v0.7.3',err));
 })();
