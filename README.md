@@ -1,4 +1,11 @@
-# Entrenador Personal – PWA v0.7.3
+# Entrenador Personal – PWA v0.7.4
+
+## Entrenamiento real del 01/09/2026 en v0.7.4
+
+- Migración idempotente que añade una sola vez el entrenamiento real completado del 1 de septiembre.
+- El registro sustituye únicamente cualquier propuesta o sesión activa de esa fecha y elimina su propuesta de Inicio.
+- Historial, Progreso y Calendario comparten una única actividad reconciliada para esa sesión.
+- Se preservan todos los demás entrenamientos y datos locales, incluidos los del 27, 28 y 31 de agosto.
 
 ## Integridad de entrenamientos en v0.7.3
 
